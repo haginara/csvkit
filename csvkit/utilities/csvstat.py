@@ -43,6 +43,8 @@ class CSVStat(CSVKitUtility):
             help='Only output unique values.')
         self.argparser.add_argument('--freq', dest='freq_only', action='store_true',
             help='Only output frequent values.')
+        self.argparser.add_argument('--max-freq', dest='max_freq', action='store', type=int,
+            help='Set Max number of frequent values')
         self.argparser.add_argument('--len', dest='len_only', action='store_true',
             help='Only output max value length.')
         self.argparser.add_argument('--count', dest='count_only', action='store_true',
@@ -62,10 +64,15 @@ class CSVStat(CSVKitUtility):
 
             if not self.args.no_header_row:
                 count -= 1
-            
+
             self.output_file.write('Row count: %i\n' % count)
 
             return
+
+
+        if self.args.max_freq:
+            global MAX_FREQ
+            MAX_FREQ = self.args.max_freq
 
         tab = table.Table.from_csv(
             self.input_file,
@@ -79,7 +86,7 @@ class CSVStat(CSVKitUtility):
         for c in tab:
             values = sorted(filter(lambda i: i is not None, c))
 
-            stats = {} 
+            stats = {}
 
             # Output a single stat
             if len(operations) == 1:
@@ -107,10 +114,10 @@ class CSVStat(CSVKitUtility):
                 if c.type == None:
                     self.output_file.write('\tEmpty column\n')
                     continue
-                    
+
                 self.output_file.write('\t%s\n' % c.type)
                 self.output_file.write('\tNulls: %s\n' % stats['nulls'])
-                
+
                 if len(stats['unique']) <= MAX_UNIQUE and c.type is not bool:
                     uniques = [six.text_type(u) for u in list(stats['unique'])]
                     data = u'\tValues: %s\n' % ', '.join(uniques)
@@ -148,7 +155,7 @@ class CSVStat(CSVKitUtility):
 
         if v in [datetime.datetime, datetime.date, datetime.time]:
             return v.isoformat()
-        
+
         return v
 
     def get_max(self, c, values, stats):
@@ -159,7 +166,7 @@ class CSVStat(CSVKitUtility):
 
         if v in [datetime.datetime, datetime.date, datetime.time]:
             return v.isoformat()
-        
+
         return v
 
     def get_sum(self, c, values, stats):
@@ -190,16 +197,16 @@ class CSVStat(CSVKitUtility):
         if 'mean' not in stats:
             stats['mean'] = self.get_mean(c, values, stats)
 
-        return math.sqrt(sum(math.pow(v - stats['mean'], 2) for v in values) / len(values)) 
+        return math.sqrt(sum(math.pow(v - stats['mean'], 2) for v in values) / len(values))
 
     def get_nulls(self, c, values, stats):
         return c.has_nulls()
 
     def get_unique(self, c, values, stats):
-        return set(values) 
+        return set(values)
 
     def get_freq(self, c, values, stats):
-        return freq(values) 
+        return freq(values)
 
     def get_len(self, c, values, stats):
         if c.type != six.text_type:
@@ -218,12 +225,15 @@ def median(l):
     else:
         a = l[(length // 2) - 1]
         b = l[length // 2]
-    return (float(a + b)) / 2  
+    return (float(a + b)) / 2
 
-def freq(l, n=MAX_FREQ):
+def freq(l):
     """
     Count the number of times each value occurs in a column.
     """
+    global MAX_FREQ
+    n = MAX_FREQ
+
     count = {}
 
     for x in l:
@@ -244,7 +254,6 @@ def freq(l, n=MAX_FREQ):
 def launch_new_instance():
     utility = CSVStat()
     utility.main()
-    
+
 if __name__ == "__main__":
     launch_new_instance()
-
