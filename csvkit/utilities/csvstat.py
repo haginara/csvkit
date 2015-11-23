@@ -7,6 +7,9 @@ import math
 
 import six
 
+import json
+from pprint import pformat
+
 from csvkit import CSVKitReader, table
 from csvkit.cli import CSVKitUtility
 
@@ -41,8 +44,10 @@ class CSVStat(CSVKitUtility):
             help='Only output whether column contains nulls.')
         self.argparser.add_argument('--unique', dest='unique_only', action='store_true',
             help='Only output unique values.')
+        self.argparser.add_argument('--max-uniq', dest='max_uniq', action='store', type=int,
+            help='Set Max number of unique value.')
         self.argparser.add_argument('--freq', dest='freq_only', action='store_true',
-            help='Only output frequent values.')
+            help='Only output frequent value.')
         self.argparser.add_argument('--max-freq', dest='max_freq', action='store', type=int,
             help='Set Max number of frequent values')
         self.argparser.add_argument('--len', dest='len_only', action='store_true',
@@ -69,6 +74,9 @@ class CSVStat(CSVKitUtility):
 
             return
 
+        if self.args.max_uniq:
+            global MAX_UNIQUE
+            MAX_UNIQUE = self.args.max_uniq
 
         if self.args.max_freq:
             global MAX_FREQ
@@ -98,7 +106,7 @@ class CSVStat(CSVKitUtility):
                     stat = len(stat)
                 elif op == 'freq':
                     stat = ', '.join([('"%s": %s' % (six.text_type(k), count)) for k, count in stat])
-                    stat = '{ %s }' % stat
+                    stat = pformat(json.loads('{ %s }' % stat))
 
                 if len(tab) == 1:
                     self.output_file.write(six.text_type(stat))
